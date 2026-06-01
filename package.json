@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start -p 4000 -H 0.0.0.0",
+    "start:heroku": "next start -H 0.0.0.0 -p $PORT",
     "bot": "tsx scripts/bot.ts",
     "lint": "next lint",
     "both": "concurrently \"npm run dev\" \"npm run bot\""

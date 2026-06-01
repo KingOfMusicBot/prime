@@ -1,0 +1,79 @@
+{
+  "name": "PrimeStudy",
+  "description": "PrimeStudy Next.js app with one-click Heroku deploy.",
+  "repository": "https://github.com/<your-username>/<your-repo>",
+  "logo": "https://node-js-sample.herokuapp.com/node.svg",
+  "keywords": [
+    "node",
+    "nextjs",
+    "education",
+    "primestudy"
+  ],
+  "stack": "heroku-24",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Runtime environment",
+      "value": "production"
+    },
+    "JWT_SECRET": {
+      "description": "Long random secret for JWT signing",
+      "generator": "secret"
+    },
+    "JWT_ACCESS_EXPIRES_SECONDS": {
+      "description": "JWT access expiry in seconds",
+      "value": "1296000"
+    },
+    "JWT_REFRESH_EXPIRES_DAYS": {
+      "description": "JWT refresh expiry in days",
+      "value": "30"
+    },
+    "BOT_TOKEN": {
+      "description": "Telegram bot token"
+    },
+    "LOG_CHANNEL_ID": {
+      "description": "Telegram log channel ID, usually starts with -100"
+    },
+    "PW_API": {
+      "description": "Backend API base URL",
+      "value": "https://api.penpencil.co/"
+    },
+    "MONGODB_URI": {
+      "description": "MongoDB connection URI"
+    },
+    "REFRESH_API_KEY": {
+      "description": "API key used by refresh middleware",
+      "generator": "secret"
+    },
+    "SHORTNER_TOKEN_SECRET": {
+      "description": "Token secret for short link generation",
+      "generator": "secret"
+    },
+    "NEXT_PUBLIC_APP_NAME": {
+      "description": "Public app name",
+      "value": "CODEWITH-VIVEK"
+    },
+    "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME": {
+      "description": "Public Telegram bot username"
+    },
+    "NEXT_PUBLIC_TG": {
+      "description": "Public Telegram channel URL"
+    },
+    "NEXT_PUBLIC_PUBLIC_API": {
+      "description": "Public base URL for announcement/API calls",
+      "required": false
+    },
+    "NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT_ID": {
+      "description": "Google AdSense publisher ID",
+      "required": false
+    },
+    "REDIS_URL": {
+      "description": "Optional Redis connection URI",
+      "required": false
+    }
+  }
+}
