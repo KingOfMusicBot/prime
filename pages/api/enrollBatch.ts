@@ -1,8 +1,7 @@
 // pages/api/enrollBatch.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "@/lib/mongodb";
-import User from "@/models/User";
-import { authenticateUser, clearAuthCookies } from "@/utils/authenticateUser";
+import { authenticateUser } from "@/utils/authenticateUser";
 
 export default async function handler(
   req: NextApiRequest,
@@ -38,7 +37,11 @@ export default async function handler(
       return res.status(404).json({ success: false, message: "Batch not found" });
     }
 
-    const alreadyEnrolled = user.enrolledBatches?.some(
+    const enrolledBatches = Array.isArray(user.enrolledBatches)
+      ? user.enrolledBatches
+      : [];
+
+    const alreadyEnrolled = enrolledBatches.some(
       (batch: any) => batch.batchId === batchId
     );
 
@@ -48,6 +51,7 @@ export default async function handler(
         .json({ success: true,message: "Already enrolled in this batch" });
     }
 
+    user.enrolledBatches = enrolledBatches;
     user.enrolledBatches.push({ batchId, name });
     await user.save();
 

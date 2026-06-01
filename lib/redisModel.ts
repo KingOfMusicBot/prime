@@ -233,7 +233,27 @@ function applyUpdate(doc: any, update: any, options: any = {}) {
         pathSet(doc, k, v);
       }
     }
-  } else {
+  }
+
+  if (update?.$pull) {
+    for (const [k, v] of Object.entries(update.$pull)) {
+      const arr = pathGet(doc, k);
+      if (!Array.isArray(arr)) continue;
+
+      const next = arr.filter((item: any) => {
+        if (v && typeof v === "object" && !Array.isArray(v)) {
+          return !Object.entries(v).every(
+            ([field, expected]) => pathGet(item, String(field)) === expected
+          );
+        }
+        return item !== v;
+      });
+
+      pathSet(doc, k, next);
+    }
+  }
+
+  if (!update?.$set && !update?.$pull) {
     Object.assign(doc, update || {});
   }
 }
@@ -290,6 +310,11 @@ export function createRedisModel(collectionName: string) {
 
     async create(data: any) {
       return model._save(data);
+    },
+
+    async exists(filter: any = {}) {
+      const one = await model.findOne(filter).lean().exec();
+      return !!one;
     },
 
     async countDocuments(filter: any = {}) {

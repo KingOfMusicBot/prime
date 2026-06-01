@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "@/lib/mongodb";
-import User from "@/models/User";
-import { authenticateUser, clearAuthCookies } from "@/utils/authenticateUser";
+import { authenticateUser } from "@/utils/authenticateUser";
 
 export default async function handler(
   req: NextApiRequest,
@@ -31,9 +30,12 @@ export default async function handler(
 
     const user = await authenticateUser(req, res);
 
-    const beforeCount = user.enrolledBatches.length;
+    const enrolledBatches = Array.isArray(user.enrolledBatches)
+      ? user.enrolledBatches
+      : [];
+    const beforeCount = enrolledBatches.length;
 
-    user.enrolledBatches = user.enrolledBatches.filter(
+    user.enrolledBatches = enrolledBatches.filter(
       (batch: any) => batch.batchId !== batchId
     );
 

@@ -27,7 +27,10 @@ export default async function handler(
       });
     }
 
-    const isEnrolled = user.enrolledBatches?.some(
+    const enrolledBatches = Array.isArray(user.enrolledBatches)
+      ? user.enrolledBatches
+      : [];
+    const isEnrolled = enrolledBatches.some(
       (b: any) => b.batchId === String(batchId)
     );
     if (!isEnrolled) {
@@ -40,7 +43,9 @@ export default async function handler(
       return res.status(404).json({ message: "Batch not found" });
     }
 
-    const tokensToTry = [...batch.enrolledTokens];
+    const tokensToTry = Array.isArray(batch.enrolledTokens)
+      ? [...batch.enrolledTokens]
+      : [];
     console.log(`Debug: Processing batch ${batchId}. Found ${tokensToTry.length} tokens.`);
 
     const container = req.query.container || "DASH";
