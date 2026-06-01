@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Contact, GraduationCap, Presentation, Send, Heart, Download } from "lucide-react";
+import { BookOpen, Contact, GraduationCap, Presentation, Heart, Download } from "lucide-react";
 import Image from "next/image";
 
 interface SidebarProps {
@@ -28,7 +28,6 @@ export function Sidebar({
     { icon: BookOpen, text: "Study", href: "/study/" },
     { icon: Presentation, text: "Batches", href: "/study/batches" },
     { icon: GraduationCap, text: "My Batches", href: "/study/mybatches" },
-    { icon: Send, text: "Join Telegram", href: tgChannel || "" },
     { icon: Heart, text: "Donate Batch", href: "/study/donate" },
     { icon: Contact, text: "Contact Us", href: "/contact" },
   ];

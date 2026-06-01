@@ -1,7 +1,7 @@
 // Updated LectureRow component with Spring theme styling and light/dark mode support
 "use client";
 
-import { Play, Clock5, Check, Download } from "lucide-react";
+import { Play, Clock5, Check } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { ResourceBadge } from "./ResourceBadge";
@@ -21,7 +21,6 @@ interface LectureRowProps {
   notesAvailable?: boolean;
   onDppClick?: () => void;
   onNotesClick?: () => void;
-  onDownloadClick?: () => void;
 }
 
 export const LectureRow = ({
@@ -38,7 +37,6 @@ export const LectureRow = ({
   notesAvailable = false,
   onDppClick,
   onNotesClick,
-  onDownloadClick,
 }: LectureRowProps) => {
   const [isCompleted, setIsCompleted] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -163,17 +161,6 @@ export const LectureRow = ({
           <ResourceBadge type="notes" available={notesAvailable} onClick={onNotesClick} />
           <div className="flex-1" />
           
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownloadClick?.();
-            }}
-            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-[var(--spring-leaf)] hover:text-white dark:hover:bg-[var(--spring-mint)] dark:hover:text-[#0F1908] transition-colors border border-gray-300 dark:border-gray-700 hover:border-transparent"
-            title="Download Lecture"
-          >
-            <Download size={15} />
-          </button>
-
           {isMounted && (
             <button
               onClick={handleMarkComplete}

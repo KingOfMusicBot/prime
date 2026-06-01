@@ -306,7 +306,6 @@ export default function WatchPageClient() {
             ContentId={ContentId}
             isOffline={!!offlineUri}
             lectureData={lectureData}
-            triggerDownload={params?.get("triggerDownload") === "true"}
           />
         ) : !loading && (videoType === null || isBatchUnavailable) ? (
           <div className="flex flex-col items-center justify-center min-h-[400px] h-full p-6 text-center bg-gradient-to-br from-[#eef7f0] via-[#e4f6e8] to-[#f5f8ff] dark:from-[#0F1908] dark:via-[#1C2B22] dark:to-[#151D1A] transition-colors duration-300">

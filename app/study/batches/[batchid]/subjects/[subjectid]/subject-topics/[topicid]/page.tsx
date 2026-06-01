@@ -309,18 +309,6 @@ export default function BatchContentPage() {
                     notesAvailable={!!res.notes}
                     onDppClick={() => handleOpenPdf(res.dpp)}
                     onNotesClick={() => handleOpenPdf(res.notes)}
-                    onDownloadClick={() => {
-                      if (lecture.isLocked) {
-                        toast.error("This lecture is locked");
-                        return;
-                      }
-                      router.push(
-                        `/watch?batchId=${batchId}&SubjectId=${subjectId}&ChildId=${lecture._id}&Type=${lecture.urlType}&VideoUrl=${
-                          lecture.videoDetails?.videoUrl ??
-                          lecture.videoDetails?.embedCode
-                        }&isLocked=${lecture.isLocked}&triggerDownload=true`
-                      );
-                    }}
                   />
                 );
               })}

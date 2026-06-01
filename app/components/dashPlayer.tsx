@@ -2,13 +2,11 @@
 
 import * as shaka from "shaka-player";
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, EllipsisVertical, X } from "lucide-react";
+import { ArrowLeft, EllipsisVertical } from "lucide-react";
 import * as Slider from "@radix-ui/react-slider";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import "../globals.css";
-import { useDownloadStore } from "@/lib/store/useDownloadStore";
-import { downloadHlsStream } from "@/lib/utils/directMediaDownloader";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -30,8 +28,6 @@ type Props = {
   Attachment?: string; // 👈 Add this line
   ContentId?: string;
   isOffline?: boolean;
-  lectureData?: any;
-  triggerDownload?: boolean;
 };
 type Quality = {
   id: number;
@@ -47,15 +43,12 @@ const VideoPlayer: React.FC<Props> = ({
   Attachment,
   ContentId,
   isOffline,
-  lectureData,
-  triggerDownload,
 }) => {
   // const contentType = "application/dash+xml";
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<shaka.Player | null>(null);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
   const speeds = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
   const [isPlaying, setIsPlaying] = useState(false);
   const [animationDirection, setAnimationDirection] = useState<
@@ -89,132 +82,6 @@ const VideoPlayer: React.FC<Props> = ({
 
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimeoutRef = useRef<number | null>(null);
-
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [downloadMode, setDownloadMode] = useState<"app" | "device">("device");
-  const [localDownloadProgress, setLocalDownloadProgress] = useState<number | null>(null);
-  const [localDownloadStatus, setLocalDownloadStatus] = useState<string>("");
-
-  const handleLocalDeviceDownload = async (format: "mp4" | "mp3", height: number | null) => {
-    try {
-      setLocalDownloadProgress(1);
-      setLocalDownloadStatus("Fetching stream details...");
-
-      const bId = searchParams?.get("batchId") || lectureData?.batchId || "";
-      const sId = searchParams?.get("SubjectId") || searchParams?.get("subjectId") || lectureData?.subjectId || "";
-      const cId = ContentId || "";
-      const title = lectureData?.title || lectureData?.topic || "Lecture";
-      const thumbnail = lectureData?.thumbnail || "";
-
-      const res = await fetch(
-        `/api/get-video-url?batchId=${bId}&subjectId=${sId}&childId=${cId}&container=HLS`
-      );
-      if (!res.ok) throw new Error("Failed to get HLS media stream details");
-      const data = await res.json();
-      let finalUrl = data?.data?.url;
-      let signedQuery = data?.data?.signedUrl;
-      
-      if (!finalUrl) {
-        if (src) {
-          finalUrl = src;
-          signedQuery = "";
-        } else {
-          throw new Error("Unable to locate segment manifest for this lecture");
-        }
-      }
-
-      const rawHlsUrl = `${finalUrl}${signedQuery || ""}`;
-      const fullHlsUrl = rawHlsUrl.replace(/\.mpd(\?|$)/i, '.m3u8$1').replace('/master.mpd', '/master.m3u8');
-      const fileName = `${title}.${format}`;
-
-      let downloadedBytesCount = 0;
-      const blob = await downloadHlsStream(
-        fullHlsUrl,
-        fileName,
-        height,
-        (progressPercent, statusText) => {
-          setLocalDownloadProgress(progressPercent);
-          setLocalDownloadStatus(statusText);
-        },
-        (bytes, index, total) => {
-          downloadedBytesCount += bytes;
-          const sizeInMB = (downloadedBytesCount / (1024 * 1024)).toFixed(1);
-          setLocalDownloadStatus(`Downloading segment ${index}/${total} (${sizeInMB} MB)`);
-        }
-      );
-
-      // Save to IndexedDB
-      setLocalDownloadStatus("Saving to offline storage...");
-      const key = `local-device-${format}-${cId || Date.now()}`;
-      try {
-        const { saveBlobToIndexedDB } = await import("@/lib/utils/indexedDBStore");
-        await saveBlobToIndexedDB(key, blob);
-      } catch (dbErr) {
-        console.error("Failed to save video to offline database:", dbErr);
-      }
-
-      // Save to localStorage history
-      try {
-        const raw = localStorage.getItem("localDownloads") || "[]";
-        const localDownloads = JSON.parse(raw);
-        const newDownload = {
-          offlineUri: key,
-          size: blob.size,
-          appMetadata: {
-            isLocalFile: true,
-            fileFormat: format,
-            downloadedAt: Date.now(),
-            lectureData: {
-              id: cId || Date.now().toString(),
-              title: title,
-              thumbnail: thumbnail || "/assets/img/video-placeholder.svg",
-              batchId: bId,
-              subjectId: sId
-            }
-          }
-        };
-        const filtered = localDownloads.filter((item: any) => item.offlineUri !== key);
-        filtered.push(newDownload);
-        localStorage.setItem("localDownloads", JSON.stringify(filtered));
-      } catch (histErr) {
-        console.error("Failed to save local download history:", histErr);
-      }
-
-      // Native file download trigger
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success(`${format.toUpperCase()} downloaded successfully!`);
-      
-      // Show success briefly before resetting
-      setLocalDownloadProgress(100);
-      setLocalDownloadStatus("✓ Download complete! Saved to device & library.");
-      setTimeout(() => {
-        setLocalDownloadProgress(null);
-        setLocalDownloadStatus("");
-        setShowDownloadModal(false);
-      }, 2000);
-
-    } catch (err: any) {
-      console.error("In-player download error:", err);
-      toast.error(`Download failed: ${err.message || "Unknown error"}`);
-      setLocalDownloadProgress(null);
-      setLocalDownloadStatus("");
-    }
-  };
-
-  useEffect(() => {
-    if (triggerDownload) {
-      setShowDownloadModal(true);
-      setDownloadMode("device");
-    }
-  }, [triggerDownload]);
 
 
   // Clear and restart hide timer
@@ -691,107 +558,7 @@ const VideoPlayer: React.FC<Props> = ({
       onMouseMove={handleMouseMove}
       onClick={handleTap}
       style={{ touchAction: "manipulation" }}
-      className="flex h-full w-full select-none relative">      {showDownloadModal && (
-        <div className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-fadeIn">
-          <div className="bg-white dark:bg-[#1B2124] border border-gray-100 dark:border-gray-800 rounded-2xl w-full max-w-sm shadow-2xl animate-slideUp overflow-hidden">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
-               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                 <div className="w-8 h-8 rounded-lg bg-[var(--spring-leaf)]/10 flex items-center justify-center">
-                    <HugeiconsIcon icon={Download04Icon} size={18} className="text-[var(--spring-leaf)]" /> 
-                 </div>
-                 Lecture Downloader
-               </h3>
-               {localDownloadProgress === null && (
-                 <button 
-                   onClick={() => setShowDownloadModal(false)}
-                   className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
-                 >
-                   <X className="w-5 h-5" />
-                 </button>
-               )}
-            </div>
-
-            {/* Content */}
-            {localDownloadProgress !== null ? (
-              // Stunning Live Progress Indicator
-              <div className="p-8 flex flex-col items-center justify-center text-center bg-gradient-to-b from-transparent to-[var(--spring-leaf)]/5 animate-fadeIn">
-                <div className="relative w-16 h-16 flex items-center justify-center mb-4">
-                  <div className="absolute inset-0 rounded-full border-4 border-[var(--spring-leaf)]/10" />
-                  <div className="absolute inset-0 rounded-full border-4 border-t-[var(--spring-leaf)] dark:border-t-[var(--spring-mint)] animate-spin" />
-                  <span className="text-sm font-black text-gray-900 dark:text-gray-100">
-                    {localDownloadProgress}%
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">
-                  Assembling Media File
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[240px] line-clamp-2">
-                  {localDownloadStatus}
-                </p>
-                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-4 overflow-hidden">
-                  <div 
-                    className="bg-[var(--spring-leaf)] dark:bg-[var(--spring-mint)] h-full rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${localDownloadProgress}%` }}
-                  />
-                </div>
-                <p className="text-[10px] text-red-500 font-semibold mt-6 animate-pulse uppercase tracking-wider">
-                  ⚠️ Keep the tab active to prevent interruption
-                </p>
-              </div>
-            ) : (
-              // local downloads options
-              <div className="p-2">
-                <p className="px-3 pb-3 text-xs text-gray-500 dark:text-gray-400">
-                  Download standard media files directly to your device downloads folder.
-                </p>
-                
-                <div className="space-y-1 px-1">
-                  {/* MP4 Options */}
-                  <button
-                    onClick={() => handleLocalDeviceDownload("mp4", 720)}
-                    className="w-full py-3 px-4 text-left text-sm font-semibold rounded-xl hover:bg-[var(--spring-leaf)] hover:text-white dark:hover:bg-[var(--spring-mint)] dark:hover:text-[#0F1908] text-gray-700 dark:text-gray-300 transition-colors duration-200 active:scale-95 flex justify-between items-center"
-                  >
-                    <span>Download MP4 Video (High 720p)</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wide bg-spring-leaf/10 dark:bg-spring-mint/10 px-2 py-0.5 rounded text-spring-leaf dark:text-spring-mint">Video</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleLocalDeviceDownload("mp4", 480)}
-                    className="w-full py-3 px-4 text-left text-sm font-semibold rounded-xl hover:bg-[var(--spring-leaf)] hover:text-white dark:hover:bg-[var(--spring-mint)] dark:hover:text-[#0F1908] text-gray-700 dark:text-gray-300 transition-colors duration-200 active:scale-95 flex justify-between items-center"
-                  >
-                    <span>Download MP4 Video (Medium 480p)</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wide bg-spring-leaf/10 dark:bg-spring-mint/10 px-2 py-0.5 rounded text-spring-leaf dark:text-spring-mint">Video</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleLocalDeviceDownload("mp4", 360)}
-                    className="w-full py-3 px-4 text-left text-sm font-semibold rounded-xl hover:bg-[var(--spring-leaf)] hover:text-white dark:hover:bg-[var(--spring-mint)] dark:hover:text-[#0F1908] text-gray-700 dark:text-gray-300 transition-colors duration-200 active:scale-95 flex justify-between items-center"
-                  >
-                    <span>Download MP4 Video (Low 360p)</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wide bg-spring-leaf/10 dark:bg-spring-mint/10 px-2 py-0.5 rounded text-spring-leaf dark:text-spring-mint">Video</span>
-                  </button>
-
-                  {/* MP3 Option */}
-                  <div className="border-t border-gray-100 dark:border-gray-800 my-2 pt-2" />
-                  
-                  <button
-                    onClick={() => handleLocalDeviceDownload("mp3", null)}
-                    className="w-full py-3 px-4 text-left text-sm font-semibold rounded-xl hover:bg-[var(--spring-leaf)] hover:text-white dark:hover:bg-[var(--spring-mint)] dark:hover:text-[#0F1908] text-gray-700 dark:text-gray-300 transition-colors duration-200 active:scale-95 flex justify-between items-center"
-                  >
-                    <span>Download MP3 Audio (Lecture Track)</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wide bg-blue-500/10 px-2 py-0.5 rounded text-blue-500">Audio</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
-      )}
-
-      {ShowAttatchment && (
+      className="flex h-full w-full select-none relative">      {ShowAttatchment && (
         <div className="fixed inset-0 z-10 flex items-center justify-center overflow-hidden scrollbar-hide bg-black/30">
           <div
             ref={popupRef}
@@ -898,25 +665,6 @@ const VideoPlayer: React.FC<Props> = ({
               >
                 <div className="bg-[#1B2124] flex flex-col  rounded-md w-[200px] p-3 shadow-xl border border-gray-800">
                   
-                  {!isOffline && availableQualities.length > 0 && (
-                    <div
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowDownloadModal(true);
-                      }}
-                      className="flex items-center cursor-pointer w-full p-2.5 gap-2.5 hover:bg-[#2A3236] rounded-md transition-colors"
-                    >
-                      <div className="w-6 h-6 flex items-center justify-center text-spring-mint">
-                        <HugeiconsIcon icon={Download04Icon} size={20} strokeWidth={2} />
-                      </div>
-                      <div className=" w-full">
-                        <div className="Typography_root__HsO0C font-semibold Typography_subHeading__v4fFR">
-                          <span className="text-white text-sm">Download</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   <div
                     onClick={() => setShowAttatchment((prev) => !prev)}
                     className="flex items-center cursor-pointer w-full p-2.5 gap-2.5"
@@ -1296,24 +1044,6 @@ const VideoPlayer: React.FC<Props> = ({
                                     </div>
                                   )}
 
-                                  {!isOffline && (
-                                    <div className="flex items-center justify-between py-2 px-4 hover:bg-[#1E1E24] cursor-pointer"
-                                      onClick={() => {
-                                        setShowDownloadModal(true);
-                                        setShowSettings(false);
-                                      }}>
-                                      <div className="flex items-center">
-                                        <span className="lg:w-28 xl:w-28 2xl:w-28 text-base font-medium leading-6 text-[#d9d9da]">
-                                          Download
-                                        </span>
-                                      </div>
-                                      <div className="py-[10px] px-[6px] pl-3 flex items-center gap-1 rounded-md">
-                                        <span className="w-[86px] text-sm font-medium leading-5 text-[#d9d9da]">
-                                          Select
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1567,3 +1297,7 @@ const VideoPlayer: React.FC<Props> = ({
 };
 
 export default VideoPlayer;
+
+
+
+

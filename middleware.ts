@@ -6,14 +6,11 @@ import { jwtVerify } from "jose";
 const REFRESH_API_PATH = "/api/TokenManager/refreshTokens";
 const REFRESH_API_KEY = process.env.REFRESH_API_KEY;
 const PUBLIC_API_PATHS = ["/api/auth"];
-const ADMIN_API_PATHS = ["/api/admin"];
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 const baseUrl = process.env.BASE_URL;
 const isPublicApi = (pathname: string) =>
   PUBLIC_API_PATHS.some((publicPath) => pathname.startsWith(publicPath));
 
-const isAdminApi = (pathname: string) =>
-  ADMIN_API_PATHS.some((adminPath) => pathname.startsWith(adminPath));
 
 // Add a web-compatible UUID v4 generator
 function generateUUIDv4() {
@@ -57,33 +54,6 @@ async function getOrSetAnonId(req: NextRequest, res?: NextResponse) {
 export async function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
-  const adminToken = req.cookies.get("admin_token")?.value;
-
-  const adminDashboard = req.nextUrl.clone();
-  adminDashboard.pathname = "/admin/dashboard";
-
-  if (pathname === "/admin/login" && adminToken) {
-    try {
-      const { payload } = await jwtVerify(adminToken, SECRET);
-      if (payload?.admin) return NextResponse.redirect(adminDashboard);
-    } catch { }
-  }
-
-  // ✅ Admin route protection
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/admin/login";
-
-    if (!adminToken) return NextResponse.redirect(url);
-
-    try {
-      const { payload } = await jwtVerify(adminToken, SECRET);
-      if (!payload.admin) throw new Error("Not an admin");
-    } catch {
-      return NextResponse.redirect(url);
-    }
-  }
-
   const token = req.cookies.get("accessToken")?.value;
 
   if (pathname === REFRESH_API_PATH) {
@@ -174,7 +144,7 @@ export async function middleware(req: NextRequest) {
   // }
 
   const isApi = pathname.startsWith("/api/");
-  const isProtectedApi = isApi && !(isPublicApi(pathname) || isAdminApi(pathname));
+  const isProtectedApi = isApi && !isPublicApi(pathname);
   const isStudyPage = pathname.startsWith("/study");
   const isWatchPage = pathname.startsWith("/watch");
 

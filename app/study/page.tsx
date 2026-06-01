@@ -521,8 +521,6 @@ export default function Home() {
       {/* <div className="bg-background border rounded-lg p-4 sm:p-6 mb-6 divshadow">
 
 </div> */}
-
-
       {/* Study Material Section */}
       <div className="glass-card !rounded-2xl p-4 sm:p-6 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
@@ -550,3 +548,5 @@ export default function Home() {
     </div>
   );
 }
+
+
