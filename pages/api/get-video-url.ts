@@ -27,20 +27,36 @@ export default async function handler(
       });
     }
 
+    const batch = await Batch.findOne({ batchId });
+
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
     const enrolledBatches = Array.isArray(user.enrolledBatches)
       ? user.enrolledBatches
       : [];
     const isEnrolled = enrolledBatches.some(
       (b: any) => b.batchId === String(batchId)
     );
-    if (!isEnrolled) {
+    const userOwnsBatchToken = Array.isArray(batch.enrolledTokens)
+      ? batch.enrolledTokens.some(
+          (token: any) => String(token?.ownerId) === String(user._id)
+        )
+      : false;
+
+    if (!isEnrolled && !userOwnsBatchToken) {
       return res.status(403).json({ message: "You are not enrolled in this batch" });
     }
 
-    const batch = await Batch.findOne({ batchId });
-
-    if (!batch) {
-      return res.status(404).json({ message: "Batch not found" });
+    // Self-heal missing enrollment mapping for existing valid owners.
+    if (!isEnrolled && userOwnsBatchToken) {
+      user.enrolledBatches = enrolledBatches;
+      user.enrolledBatches.push({
+        batchId: String(batchId),
+        name: (batch as any).batchName || "Batch",
+      });
+      await user.save();
     }
 
     const tokensToTry = Array.isArray(batch.enrolledTokens)
