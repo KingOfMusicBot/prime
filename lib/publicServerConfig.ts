@@ -24,7 +24,8 @@ export async function getPublicServerConfig(): Promise<PublicServerConfig> {
       process.env.NEXT_PUBLIC_APP_NAME ||
       "PrimeStudy",
     tg_channel: config?.tg_channel || process.env.NEXT_PUBLIC_TG || "",
-    tg_username: config?.tg_username || "",
+    tg_username:
+      config?.tg_username || process.env.NEXT_PUBLIC_TG_USERNAME || "",
     isDirectLoginOpen: config?.isDirectLoginOpen ?? true,
     tg_bot:
       config?.tg_bot || process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "",
