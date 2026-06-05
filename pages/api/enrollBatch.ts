@@ -32,9 +32,34 @@ export default async function handler(
     // Verify user from cookie (throws if invalid)
     const user = await authenticateUser(req, res);
 
-    const batchExists = await (await import("@/models/Batch")).default.exists({ batchId });
+    const BatchModel = (await import("@/models/Batch")).default;
+    let batchExists = await BatchModel.exists({ batchId });
     if (!batchExists) {
-      return res.status(404).json({ success: false, message: "Batch not found" });
+      const { v4: uuidv4 } = await import("uuid");
+      await BatchModel.create({
+        batchId: batchId,
+        batchName: name || "Unknown Batch",
+        batchPrice: 0,
+        batchImage: "",
+        template: "NORMAL",
+        BatchType: "FREE",
+        language: "Hinglish",
+        byName: "",
+        startDate: "",
+        endDate: "",
+        batchStatus: true,
+        enrolledTokens: [
+          {
+            ownerId: user._id,
+            accessToken: user.ActualToken,
+            refreshToken: user.ActualRefresh,
+            tokenStatus: true,
+            randomId: user.randomId || uuidv4(),
+            updatedAt: new Date(),
+          }
+        ]
+      });
+      batchExists = true;
     }
 
     const enrolledBatches = Array.isArray(user.enrolledBatches)

@@ -55,7 +55,7 @@
     },
     "NEXT_PUBLIC_APP_NAME": {
       "description": "Public app name",
-      "value": "CODEWITH-VIVEK"
+      "value": "PrimeStudy"
     },
     "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME": {
       "description": "Public Telegram bot username"

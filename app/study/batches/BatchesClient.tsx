@@ -24,10 +24,29 @@ export interface Batch {
   endDate: string;
   batchPrice: number;
   byName: string;
+
+  // New properties from v2 API
+  id?: string;
+  name?: string;
+  pngUrl?: string;
+  hasMultiplePlans?: boolean;
+  cohort?: string;
+  medium?: string;
+  exam?: string;
+  startsOn?: string;
+  actualPrice?: number;
+  offPrice?: number;
+  createdAt?: string;
 }
 export function formatDate(dateStr: string): string {
-  const date = parseISO(dateStr); // safely parse ISO string
-  return format(date, "dd MMM yyyy"); // e.g., "13 Apr 2025"
+  if (!dateStr) return "-";
+  try {
+    const date = parseISO(dateStr);
+    if (isNaN(date.getTime())) return "-";
+    return format(date, "dd MMM yyyy");
+  } catch (err) {
+    return "-";
+  }
 }
 
 export default function BatchesClient() {
@@ -192,9 +211,18 @@ export default function BatchesClient() {
                     type={batch.language}
                     startDate={formatDate(batch.startDate)}
                     endDate={formatDate(batch.endDate)}
-
                     price={batch.batchPrice?.toFixed(0) || '0'}
                     forText={batch.byName || ''}
+                    name={batch.name}
+                    pngUrl={batch.pngUrl}
+                    hasMultiplePlans={batch.hasMultiplePlans}
+                    cohort={batch.cohort}
+                    medium={batch.medium}
+                    exam={batch.exam}
+                    startsOn={batch.startsOn}
+                    actualPrice={batch.actualPrice}
+                    offPrice={batch.offPrice}
+                    createdAt={batch.createdAt}
                   />
                 ))}
             </div>

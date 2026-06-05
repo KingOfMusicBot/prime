@@ -24,7 +24,7 @@ export default function Home() {
     fetchServerInfo();
   }, []);
 
-  const appName = serverInfo?.webName || process.env.NEXT_PUBLIC_APP_NAME || "CODEWITH-VIVEK";
+  const appName = serverInfo?.webName || process.env.NEXT_PUBLIC_APP_NAME || "PrimeStudy";
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden">

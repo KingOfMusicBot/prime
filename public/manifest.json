@@ -1,6 +1,6 @@
 {
-  "name": "CODEWITH-VIVEK Offline Study",
-  "short_name": "CODEWITH-VIVEK",
+  "name": "PrimeStudy Offline Study",
+  "short_name": "PrimeStudy",
   "description": "Learn, Code, Grow",
   "start_url": "/study",
   "display": "standalone",

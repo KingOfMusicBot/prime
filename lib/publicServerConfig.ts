@@ -17,12 +17,12 @@ export async function getPublicServerConfig(): Promise<PublicServerConfig> {
 
   return {
     webName:
-      config?.webName || process.env.NEXT_PUBLIC_APP_NAME || "CODEWITH-VIVEK",
+      config?.webName || process.env.NEXT_PUBLIC_APP_NAME || "PrimeStudy",
     sidebarLogoUrl: config?.sidebarLogoUrl || "",
     sidebarTitle:
       config?.sidebarTitle ||
       process.env.NEXT_PUBLIC_APP_NAME ||
-      "CODEWITH-VIVEK",
+      "PrimeStudy",
     tg_channel: config?.tg_channel || process.env.NEXT_PUBLIC_TG || "",
     tg_username: config?.tg_username || "",
     isDirectLoginOpen: config?.isDirectLoginOpen ?? true,

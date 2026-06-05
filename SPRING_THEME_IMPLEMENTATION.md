@@ -30,7 +30,7 @@ import { SpringButton, SpringCard, SpringInput, SpringProgress, SpringBadge } fr
   {/* Logo with leaf icon */}
   <div className="flex items-center gap-2">
     <span className="text-xl">🍃</span>
-    <span className="text-xl font-bold text-spring-leaf dark:text-spring-mint">CODEWITH-VIVEK</span>
+    <span className="text-xl font-bold text-spring-leaf dark:text-spring-mint">PrimeStudy</span>
   </div>
 
   {/* Navigation Links */}
@@ -480,7 +480,7 @@ export function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-spring-leaf dark:text-spring-mint mb-2 font-poppins">
-            🌱 CODEWITH-VIVEK
+            🌱 PrimeStudy
           </h1>
           <p className="text-spring-forest/70 dark:text-spring-cream/70">
             Welcome back, learner!

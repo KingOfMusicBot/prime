@@ -15,11 +15,15 @@ const DashPlayer = dynamic(() => import("@/app/components/dashPlayer"), {
   ssr: false,
 });
 
+const HLSPlayer = dynamic(() => import("@/app/components/HLSPlayer"), {
+  ssr: false,
+});
+
 export default function WatchPageClient() {
   const params = useSearchParams();
   const router = useRouter();
 
-  const [videoType, setVideoType] = useState<"youtube" | "penpencilvdo" | null>(
+  const [videoType, setVideoType] = useState<"youtube" | "penpencilvdo" | "hls" | null>(
     null
   );
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -126,12 +130,76 @@ export default function WatchPageClient() {
       setIsBatchUnavailable(false);
 
       try {
-        // Step 0: Get video type and URL
-        const scheduleRes = await fetch(
-          `/api/Schedule?BatchId=${batchId}&SubjectId=${subjectId}&ContentId=${ContentId}`
-        );
-        const scheduleData = await scheduleRes.json();
+        // Step 1: Attempt to load the lecture via Bhanu Yadav's Lecture URL API (Cloudflare Worker)
+        let hlsVid: string | null = null;
+        try {
+          const workerUrl = `https://get-url.bhanuyadav.workers.dev/?parentId=${batchId}&childId=${ContentId}`;
+          const workerRes = await fetch(workerUrl);
+          
+          if (workerRes.ok) {
+            const workerData = await workerRes.json();
+            // Extract the video ID (vid) from response
+            if (workerData && !workerData.error) {
+              hlsVid = workerData.vid || workerData.videoId || workerData.video_id || 
+                       (workerData.data && (workerData.data.vid || workerData.data.videoId));
+            }
+          }
+        } catch (workerErr) {
+          console.warn("Lecture URL API integration request failed. Falling back to default system:", workerErr);
+        }
 
+        // Fetch Schedule/Metadata API from Next.js backend concurrently to get metadata
+        let scheduleData: any = null;
+        try {
+          const scheduleRes = await fetch(
+            `/api/Schedule?BatchId=${batchId}&SubjectId=${subjectId}&ContentId=${ContentId}`
+          );
+          if (scheduleRes.ok) {
+            scheduleData = await scheduleRes.json();
+          }
+        } catch (scheduleErr) {
+          console.warn("Failed to fetch lecture metadata from Schedule API:", scheduleErr);
+        }
+
+        // If a video ID (vid) was successfully extracted, construct and play the HLS stream
+        if (hlsVid) {
+          const generatedHlsUrl = `https://stream.pimaxer.in/${hlsVid}/master.m3u8`;
+          setVideoUrl(generatedHlsUrl);
+          setVideoType("hls");
+
+          // Extract metadata details if available from the scheduleData response
+          const title = scheduleData?.data?.topic || scheduleData?.data?.videoDetails?.name || "Lecture";
+          const thumbnail = scheduleData?.data?.videoDetails?.image || "/assets/img/video-placeholder.svg";
+          const duration = scheduleData?.data?.videoDetails?.duration || "";
+          const isLocked = scheduleData?.data?.isLocked ?? false;
+
+          const homeworkIds = scheduleData?.data?.homeworkIds?.[0];
+          if (homeworkIds?.attachmentIds?.length > 0) {
+            const attachment = homeworkIds.attachmentIds[0];
+            if (attachment?.baseUrl && attachment?.key) {
+              setAttachment(attachment);
+            }
+          }
+
+          const lectureMeta = {
+            id: ContentId,
+            title,
+            thumbnail,
+            duration,
+            batchId,
+            subjectId,
+            type: "hls",
+            videoUrl: generatedHlsUrl,
+            isLocked,
+          };
+
+          saveWatchHistory(lectureMeta);
+          setLectureData(lectureMeta);
+          setLoading(false);
+          return;
+        }
+
+        // --- FALLBACK TO ORIGINAL DRM / YOUTUBE FLOW ---
         if (!scheduleData?.success || !scheduleData?.data?.urlType) {
           throw new Error("Invalid Schedule API response");
         }
@@ -294,6 +362,14 @@ export default function WatchPageClient() {
 
         {!loading && !isBatchUnavailable && videoType === "youtube" && videoUrl && (
           <YouTubePlayer videoId={extractYouTubeVideoId(videoUrl)} ContentId={ContentId} />
+        )}
+
+        {!loading && !isBatchUnavailable && videoType === "hls" && videoUrl && (
+          <HLSPlayer
+            baseUrl={videoUrl}
+            signedQuery=""
+            attachment={Attachment || undefined}
+          />
         )}
 
         {!loading && !isBatchUnavailable && videoType === "penpencilvdo" && videoUrl && (clearKeys || offlineUri) ? (

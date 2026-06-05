@@ -12,13 +12,13 @@ const inter = Inter({ subsets: ["latin"] });
 export async function generateMetadata(): Promise<Metadata> {
   // Use environment variables only, no server-side fetch during build
   return {
-    title: process.env.NEXT_PUBLIC_APP_NAME || "CODEWITH-VIVEK",
-    description: "CODEWITH-VIVEK ~ Learn, Code, Grow",
+    title: process.env.NEXT_PUBLIC_APP_NAME || "PrimeStudy",
+    description: "PrimeStudy ~ Learn, Code, Grow",
     manifest: "/manifest.json",
     authors: [
       { name: "VIVEK", url: "https://t.me/VS_ONHUNT" },
     ],
-    creator: "CODEWITH-VIVEK",
+    creator: "PrimeStudy",
     icons: {
       icon: "/favicon.ico",
       apple: "/logo.png",

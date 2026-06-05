@@ -26,11 +26,12 @@ type Quality = {
 
 type Props = {
   baseUrl: string;
-  signedQuery: string;
+  signedQuery?: string;
   attachment?: string;
+  ContentId?: string;
 };
 
-const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
+const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery = "", attachment, ContentId }) => {
   const hlsRef = useRef<Hls | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -67,6 +68,7 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
 
   const [isLive, setIsLive] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
 
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -171,12 +173,16 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
     const video = videoRef.current;
     if (!video) return;
 
-    const hls = new Hls({
-      xhrSetup: (xhr, url) => {
-        const sep = url.includes("?") ? "&" : "?";
-        xhr.open("GET", `${url}${sep}${signedQuery.replace(/^\?/, "")}`, true);
-      },
-    });
+    const hls = new Hls(
+      signedQuery
+        ? {
+            xhrSetup: (xhr, url) => {
+              const sep = url.includes("?") ? "&" : "?";
+              xhr.open("GET", `${url}${sep}${signedQuery.replace(/^\?/, "")}`, true);
+            },
+          }
+        : {}
+    );
 
     hlsRef.current = hls;
     hls.loadSource(baseUrl);
@@ -190,6 +196,13 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
       }));
       setAvailableQualities(qualities);
       setSelectedQuality("auto");
+
+      if (ContentId) {
+        const savedTime = parseFloat(localStorage.getItem(`lectureTime_${ContentId}`) || "0");
+        if (savedTime > 0) {
+          video.currentTime = savedTime;
+        }
+      }
     });
 
     hls.on(Hls.Events.ERROR, (event, data) => {
@@ -207,6 +220,9 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
 
     const updateTime = () => {
       setCurrentTime(video.currentTime);
+      if (ContentId && video.currentTime > 0) {
+        localStorage.setItem(`lectureTime_${ContentId}`, video.currentTime.toString());
+      }
     };
 
     const updatePlaying = () => {
@@ -214,9 +230,22 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
       video.playbackRate = playbackRate; // <-- Re-apply playback speed
     };
 
+    const updateDuration = () => {
+      if (video.duration) {
+        setDuration(video.duration);
+      }
+    };
+
+    // Initialize duration if already loaded
+    if (video.duration) {
+      setDuration(video.duration);
+    }
+
     video.addEventListener("timeupdate", updateTime);
     video.addEventListener("play", updatePlaying);
     video.addEventListener("pause", updatePlaying);
+    video.addEventListener("durationchange", updateDuration);
+    video.addEventListener("loadedmetadata", updateDuration);
 
     const interval = setInterval(() => {
       if (!video) return;
@@ -234,10 +263,12 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
       }
       setBufferedTime(bufferedEnd);
 
-      if (video.seekable?.length > 0) {
+      if (video.seekable?.length > 0 && (!video.duration || !isFinite(video.duration))) {
         const liveEdge = video.seekable.end(0);
         const latency = liveEdge - video.currentTime;
         setIsLive(latency <= LIVE_LATENCY);
+      } else {
+        setIsLive(false);
       }
     }, 500);
 
@@ -245,6 +276,8 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
       video.removeEventListener("timeupdate", updateTime);
       video.removeEventListener("play", updatePlaying);
       video.removeEventListener("pause", updatePlaying);
+      video.removeEventListener("durationchange", updateDuration);
+      video.removeEventListener("loadedmetadata", updateDuration);
       clearInterval(interval);
     };
   }, []);
@@ -505,21 +538,27 @@ const VideoPlayer: React.FC<Props> = ({ baseUrl, signedQuery, attachment }) => {
                   </div>
                   {/* duration */}
                   <div className="total-time-placeholder">
-                    <div
-                      className={`text-sm p-1 rounded-md flex items-center text-center flex-row gap-1 cursor-pointer ${isLive
-                        ? "bg-red-500"
-                        : "border border-red-500 text-white"
-                        }`}
-                      title="Go Live"
-                      onClick={goToLive}
-                    >
-                      <HugeiconsIcon
-                        icon={LiveStreaming02Icon}
-                        size={15}
-                        strokeWidth={2}
-                      />
-                      LIVE
-                    </div>
+                    {duration && isFinite(duration) && duration > 0 ? (
+                      <div className="text-sm p-1 text-white font-medium">
+                        {formatTime(duration)}
+                      </div>
+                    ) : (
+                      <div
+                        className={`text-sm p-1 rounded-md flex items-center text-center flex-row gap-1 cursor-pointer ${isLive
+                          ? "bg-red-500"
+                          : "border border-red-500 text-white"
+                          }`}
+                        title="Go Live"
+                        onClick={goToLive}
+                      >
+                        <HugeiconsIcon
+                          icon={LiveStreaming02Icon}
+                          size={15}
+                          strokeWidth={2}
+                        />
+                        LIVE
+                      </div>
+                    )}
                   </div>
                 </div>
                 {/* Progress bar container */}

@@ -1,6 +1,6 @@
 // lib/utils/indexedDBStore.ts
 
-const DB_NAME = "codewithvivek-offline";
+const DB_NAME = "primestudy-offline";
 const STORE_NAME = "localFiles";
 const DB_VERSION = 1;
 

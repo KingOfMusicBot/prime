@@ -64,7 +64,7 @@ export default function OfflineFallbackPage() {
 
       {/* Small subtle branding footer */}
       <div className="absolute bottom-6 left-0 right-0 text-center text-xs text-spring-mint/30">
-        CODEWITH-VIVEK Offline Mode 🌱
+        PrimeStudy Offline Mode 🌱
       </div>
     </div>
   );

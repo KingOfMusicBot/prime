@@ -25,7 +25,7 @@ export default function ContactPage() {
     fetchServerInfo();
   }, []);
 
-  const appName = serverInfo?.webName || process.env.NEXT_PUBLIC_APP_NAME || "CODEWITH-VIVEK";
+  const appName = serverInfo?.webName || process.env.NEXT_PUBLIC_APP_NAME || "PrimeStudy";
   const tg_channel = serverInfo?.tg_channel;
   const tg_username = serverInfo?.tg_username;
   const sidebarLogoUrl = serverInfo?.sidebarLogoUrl;

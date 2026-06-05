@@ -27,10 +27,44 @@ export default async function handler(
       });
     }
 
-    const batch = await Batch.findOne({ batchId });
+    let batch = await Batch.findOne({ batchId });
 
     if (!batch) {
-      return res.status(404).json({ message: "Batch not found" });
+      const enrolledBatches = Array.isArray(user.enrolledBatches)
+        ? user.enrolledBatches
+        : [];
+      const userEnrollment = enrolledBatches.find(
+        (b: any) => b.batchId === String(batchId)
+      );
+
+      if (userEnrollment) {
+        const { v4: uuidv4 } = await import("uuid");
+        batch = await Batch.create({
+          batchId: String(batchId),
+          batchName: userEnrollment.name || "Unknown Batch",
+          batchPrice: 0,
+          batchImage: "",
+          template: "NORMAL",
+          BatchType: "FREE",
+          language: "Hinglish",
+          byName: "",
+          startDate: "",
+          endDate: "",
+          batchStatus: true,
+          enrolledTokens: [
+            {
+              ownerId: user._id,
+              accessToken: user.ActualToken,
+              refreshToken: user.ActualRefresh,
+              tokenStatus: true,
+              randomId: user.randomId || uuidv4(),
+              updatedAt: new Date(),
+            }
+          ]
+        });
+      } else {
+        return res.status(404).json({ message: "Batch not found" });
+      }
     }
 
     const enrolledBatches = Array.isArray(user.enrolledBatches)
@@ -47,6 +81,28 @@ export default async function handler(
 
     if (!isEnrolled && !userOwnsBatchToken) {
       return res.status(403).json({ message: "You are not enrolled in this batch" });
+    }
+
+    // Ensure the current user's valid token is registered in batch.enrolledTokens if enrolled
+    if (isEnrolled && user.ActualToken) {
+      const { v4: uuidv4 } = await import("uuid");
+      const tokenIdx = batch.enrolledTokens.findIndex(
+        (t: any) => String(t.ownerId) === String(user._id)
+      );
+      const enrolledToken = {
+        ownerId: user._id,
+        accessToken: user.ActualToken,
+        refreshToken: user.ActualRefresh,
+        tokenStatus: true,
+        randomId: user.randomId || uuidv4(),
+        updatedAt: new Date(),
+      };
+      if (tokenIdx !== -1) {
+        batch.enrolledTokens[tokenIdx] = enrolledToken;
+      } else {
+        batch.enrolledTokens.push(enrolledToken);
+      }
+      await batch.save();
     }
 
     // Self-heal missing enrollment mapping for existing valid owners.

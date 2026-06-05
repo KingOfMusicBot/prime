@@ -63,7 +63,7 @@ export function Sidebar({
           <div className="w-10 h-10 rounded-full dark:bg-spring-mint/10 overflow-hidden ring-2 ring-spring-leaf/20 dark:ring-spring-mint/30">
             <Image
               src={sidebarLogoUrl || "/assets/img/logo.png"}
-              alt={sidebarTitle || "CODEWITH-VIVEK"}
+              alt={sidebarTitle || "PrimeStudy"}
               width={40}
               height={40}
               priority={true}
