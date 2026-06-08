@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import axios from "axios";
 import { authenticateUser } from "@/utils/authenticateUser";
+import { getCachedBatches } from "@/utils/batchesCache";
+import dbConnect from "@/lib/mongodb";
+import Batch from "@/models/Batch";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -17,23 +19,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Authenticate user before querying
     await authenticateUser(req, res);
+    await dbConnect();
 
-    // Fetch batches from the Pimaxer v2 API
-    const response = await axios.get("https://api.pimaxer.in/v2/batches", {
-      timeout: 10000,
-    });
+    // Fetch batches from the cache
+    const rawBatches = await getCachedBatches();
 
-    const rawData = response.data;
-    let rawBatches: any[] = [];
-    if (rawData) {
-      if (Array.isArray(rawData)) {
-        rawBatches = rawData;
-      } else if (Array.isArray(rawData.data)) {
-        rawBatches = rawData.data;
-      } else if (Array.isArray(rawData.batches)) {
-        rawBatches = rawData.batches;
-      }
-    }
+    // Fetch local batches from database
+    const localBatches = await Batch.find({}).lean().exec();
 
     // Map fields for full backward compatibility and new metadata requirements
     const mappedBatches = rawBatches.map((item: any) => ({
@@ -62,10 +54,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: item.createdAt || "",
     }));
 
+    const mappedLocal = (localBatches || []).map((item: any) => ({
+      _id: item.batchId || item._id,
+      batchId: item.batchId || "",
+      batchName: item.batchName || "Unnamed Batch",
+      batchImage: item.batchImage || "/assets/img/video-placeholder.svg",
+      language: item.language || "Hinglish",
+      template: item.template || "NORMAL",
+      startDate: item.startDate || "",
+      endDate: item.endDate || "",
+      batchPrice: item.batchPrice || 0,
+      byName: item.byName || "",
+
+      id: item.batchId || "",
+      name: item.batchName || "",
+      pngUrl: item.batchImage || "",
+      hasMultiplePlans: !!item.hasMultiplePlans,
+      cohort: item.byName || "",
+      medium: item.language || "",
+      exam: item.exam || "",
+      startsOn: item.startDate || "",
+      actualPrice: item.batchPrice || 0,
+      offPrice: item.batchPrice || 0,
+      createdAt: item.createdAt || "",
+    }));
+
+    const mergedMap = new Map();
+    mappedBatches.forEach((b: any) => mergedMap.set(String(b.batchId), b));
+    mappedLocal.forEach((b: any) => mergedMap.set(String(b.batchId), b));
+
+    const mergedBatches = Array.from(mergedMap.values());
+
     const FIXED_LIMIT = 12;
     const skip = (pageNum - 1) * FIXED_LIMIT;
-    const total = mappedBatches.length;
-    const paginatedData = mappedBatches.slice(skip, skip + FIXED_LIMIT);
+    const total = mergedBatches.length;
+    const paginatedData = mergedBatches.slice(skip, skip + FIXED_LIMIT);
 
     return res.status(200).json({
       success: true,

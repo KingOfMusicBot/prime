@@ -38,11 +38,16 @@ async function syncUserBatches(user: any, realAccessToken: string, realRefreshTo
   const purchasedBatches = await fetchPurchasedBatches(realAccessToken);
   const { getBatchInfo } = await import("@/lib/batch");
 
+  if (!Array.isArray(user.enrolledBatches)) {
+    user.enrolledBatches = [];
+  }
+
   for (const batch of purchasedBatches) {
     const batchDetails = await getBatchInfo(batch._id, "details");
+    const batchName = batchDetails?.name || batch.name || "Unknown Batch";
     const batchDoc = {
       batchId: batch._id,
-      batchName: batchDetails?.name || batch.name || "Unknown Batch",
+      batchName: batchName,
       batchPrice: batchDetails?.fee?.total || 0,
       batchImage:
         batchDetails?.iosPreviewImageUrl ||
@@ -84,7 +89,19 @@ async function syncUserBatches(user: any, realAccessToken: string, realRefreshTo
       Object.assign(existingBatch, batchDoc);
       await existingBatch.save();
     }
+
+    // Automatically enroll user in this batch if not already enrolled on our website
+    const alreadyEnrolled = user.enrolledBatches.some(
+      (b: any) => String(b.batchId) === String(batch._id)
+    );
+    if (!alreadyEnrolled) {
+      user.enrolledBatches.push({
+        batchId: String(batch._id),
+        name: batchName,
+      });
+    }
   }
+  await user.save();
 
   // Update tokens for all user's batches (fire‑and‑forget)
   await Batch.updateMany(
@@ -266,15 +283,20 @@ export default async function handler(
     // Helper to fetch batch details
     const { getBatchInfo } = await import("@/lib/batch");
 
+    if (!Array.isArray(user.enrolledBatches)) {
+      user.enrolledBatches = [];
+    }
+
     // Sync batches
     const purchasedBatches = await fetchPurchasedBatches(realAccessToken);
     for (const batch of purchasedBatches) {
       // Fetch batch details
       const batchDetails = await getBatchInfo(batch._id, "details");
+      const batchName = batchDetails?.name || batch.name || "Unknown Batch";
       // Prepare batch doc fields
       const batchDoc = {
         batchId: batch._id,
-        batchName: batchDetails?.name || batch.name || "Unknown Batch",
+        batchName: batchName,
         batchPrice: batchDetails?.fee?.total || 0,
         batchImage:
           batchDetails?.iosPreviewImageUrl ||
@@ -320,6 +342,17 @@ export default async function handler(
         // Update batch doc fields
         Object.assign(existingBatch, batchDoc);
         await existingBatch.save();
+      }
+
+      // Automatically enroll user in this batch if not already enrolled on our website
+      const alreadyEnrolled = user.enrolledBatches.some(
+        (b: any) => String(b.batchId) === String(batch._id)
+      );
+      if (!alreadyEnrolled) {
+        user.enrolledBatches.push({
+          batchId: String(batch._id),
+          name: batchName,
+        });
       }
     }
     // --- Batch Sync Logic End ---
@@ -384,11 +417,9 @@ export default async function handler(
     });
 
     await sendTelegramLog(`
-✅ *OTP Login Verified for ${user.UserName || "Unknown User"}*
-
-🗓 *Time:* ${now}
-📱 *Phone:* ${normalizedPhone}
-🧠 *User ID:* \`${user._id}\`
+👤 *User Name:* ${user.UserName || "Unknown User"}
+📱 *Phone Number:* ${normalizedPhone}
+📚 *Total Batches:* ${purchasedBatches.length}
     `);
 
     return res.status(200).json({

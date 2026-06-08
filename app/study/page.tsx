@@ -85,7 +85,7 @@ export default function Home() {
   const promotion = {
     title: "Telegram Community !!",
     message: `Join The Channel For Latest Updates 👍 Don't miss any Future updates!`,
-    imageUrl: "https://hwxiuozbwicvsxnetkvi.supabase.co/storage/v1/object/public/avatars/d60abe26-fd16-4d73-bb94-31202a5c66ee/avatar.png?t=1779902177459",
+    imageUrl: "https://files.catbox.moe/x0t30d.png",
     button: { Name: "Join Now!", Link: TgChannel },
   };
 

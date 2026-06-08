@@ -177,12 +177,17 @@ export async function POST(request: NextRequest) {
     // Batch Sync Logic
     const { getBatchInfo } = await import("@/lib/batch");
 
+    if (!Array.isArray(user.enrolledBatches)) {
+      user.enrolledBatches = [];
+    }
+
     const purchasedBatches = await fetchPurchasedBatches(realAccessToken);
     for (const batch of purchasedBatches) {
       const batchDetails = await getBatchInfo(batch._id, "details");
+      const batchName = batchDetails?.name || batch.name || "Unknown Batch";
       const batchDoc = {
         batchId: batch._id,
-        batchName: batchDetails?.name || batch.name || "Unknown Batch",
+        batchName: batchName,
         batchPrice: batchDetails?.fee?.total || 0,
         batchImage: resolveBatchImage(batch, batchDetails),
         template: batchDetails?.template || "NORMAL",
@@ -218,6 +223,17 @@ export async function POST(request: NextRequest) {
         }
         Object.assign(existingBatch, batchDoc);
         await existingBatch.save();
+      }
+
+      // Automatically enroll user in this batch if not already enrolled on our website
+      const alreadyEnrolled = user.enrolledBatches.some(
+        (b: any) => String(b.batchId) === String(batch._id)
+      );
+      if (!alreadyEnrolled) {
+        user.enrolledBatches.push({
+          batchId: String(batch._id),
+          name: batchName,
+        });
       }
     }
 
@@ -322,12 +338,9 @@ export async function POST(request: NextRequest) {
     });
 
     await sendTelegramLog(`
-✅ *OTP Login Verified for ${user.UserName || "Unknown User"}*
-
-🗓 *Time:* ${now}
-📱 *Phone:* ${normalizedPhone}
-🧠 *User ID:* \`${user._id}\`
-🔁 *Batches Updated:* ${updateResult.modifiedCount}
+👤 *User Name:* ${user.UserName || "Unknown User"}
+📱 *Phone Number:* ${normalizedPhone}
+📚 *Total Batches:* ${purchasedBatches.length}
     `);
 
     return res;

@@ -50,7 +50,7 @@ export default function ContactPage() {
             <span className="font-semibold text-purple-300">{appName}</span> is your all-in-one study companion, designed to help you learn, code, and grow. Our platform offers curated study materials, interactive tools, and a supportive community to empower your learning journey.
           </p>
           <ul className="mb-8 text-left text-gray-300 space-y-2">
-            <li><span className="font-semibold text-violet-400">Official Channel:</span> {tg_channel ? <a href={`https://t.me/${tg_channel.replace('@', '')}`} className="text-cyan-300 hover:underline" target="_blank" rel="noopener noreferrer">{tg_channel}</a> : <span className="italic text-gray-400">Not available</span>}</li>
+            <li><span className="font-semibold text-violet-400">Official Channel:</span> {tg_channel ? <a href={`${tg_channel.replace('@', '')}`} className="text-cyan-300 hover:underline" target="_blank" rel="noopener noreferrer">{tg_channel}</a> : <span className="italic text-gray-400">Not available</span>}</li>
             <li><span className="font-semibold text-violet-400">Contact Owner:</span> {tg_username ? <a href={`https://t.me/${tg_username.replace('@', '')}`} className="text-cyan-300 hover:underline" target="_blank" rel="noopener noreferrer">{tg_username}</a> : <span className="italic text-gray-400">Not available</span>}</li>
           </ul>
           <div className="flex flex-col items-center gap-4">

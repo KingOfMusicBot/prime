@@ -163,7 +163,7 @@ export default function WatchPageClient() {
 
         // If a video ID (vid) was successfully extracted, construct and play the HLS stream
         if (hlsVid) {
-          const generatedHlsUrl = `https://stream.pimaxer.in/${hlsVid}/master.m3u8`;
+          const generatedHlsUrl = `/api/stream/${hlsVid}/master.m3u8`;
           setVideoUrl(generatedHlsUrl);
           setVideoType("hls");
 
@@ -257,7 +257,8 @@ export default function WatchPageClient() {
             return;
           }
 
-          const fullMPDUrl = `${finalUrl}${signedQuery}`;
+          const proxiedFinalUrl = finalUrl.replace(/^https?:\/\/stream\.pimaxer\.in\//, "/api/stream/");
+          const fullMPDUrl = `${proxiedFinalUrl}${signedQuery}`;
 
           // Step 2: Fetch MPD and extract default_KID
           const mpdRes = await fetch(fullMPDUrl);
@@ -287,7 +288,7 @@ export default function WatchPageClient() {
           }
 
           // Step 4: Set state with everything
-          setVideoUrl(finalUrl);
+          setVideoUrl(proxiedFinalUrl);
           setSignedUrlQuery(signedQuery);
           setClearKeys(otpData?.clearKeys);
           setVideoType("penpencilvdo");
