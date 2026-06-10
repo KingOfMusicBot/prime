@@ -28,6 +28,10 @@
       "description": "JWT access expiry in seconds",
       "value": "1296000"
     },
+     "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME": {
+      "description": "owner id",
+      "value": "PrimeStudy_Owner"
+    },
     "JWT_REFRESH_EXPIRES_DAYS": {
       "description": "JWT refresh expiry in days",
       "value": "30"
