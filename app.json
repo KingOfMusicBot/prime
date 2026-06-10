@@ -28,7 +28,7 @@
       "description": "JWT access expiry in seconds",
       "value": "1296000"
     },
-     "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME": {
+     "NEXT_PUBLIC_TG_USERNAME": {
       "description": "owner id",
       "value": "PrimeStudy_Owner"
     },
